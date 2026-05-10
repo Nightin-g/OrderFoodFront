@@ -10,8 +10,6 @@
         </div>
         <div class="navbar-menu">
           <router-link to="/" class="nav-item">首页</router-link>
-          <router-link to="/dishes" class="nav-item">菜品浏览</router-link>
-          <router-link to="/profile" class="nav-item">个人中心</router-link>
           <router-link to="/shop" class="nav-item active">店铺管理</router-link>
           <router-link to="/comment" class="nav-item">我的评论</router-link>
           <button @click="handleLogout" class="logout-btn">退出登录</button>
@@ -22,7 +20,7 @@
     <div class="page-container">
       <div class="page-header">
         <h1 class="page-title">店铺管理</h1>
-        <p class="page-subtitle">管理您的店铺信息、菜品和营业状态</p>
+        <p class="page-subtitle">{{ userStore.userInfo?.shopName || '管理您的店铺信息、菜品和订单' }}</p>
       </div>
 
       <div class="tab-bar">
@@ -69,6 +67,45 @@
           </el-form>
         </div>
 
+        <!-- 订单管理 -->
+        <div v-else-if="activeTab === 'orders'" class="content-card">
+          <h2 class="card-title">订单管理</h2>
+          <el-table :data="orders" style="width: 100%" class="order-table" :header-cell-style="{ background: '#f5f7fa', color: '#303133', fontWeight: 600 }" empty-text="暂无订单">
+            <el-table-column prop="orderNum" label="订单号" min-width="160" />
+            <el-table-column prop="orderPrice" label="金额" width="100">
+              <template #default="scope">¥{{ Number(scope.row.orderPrice).toFixed(2) }}</template>
+            </el-table-column>
+            <el-table-column label="状态" width="120">
+              <template #default="scope">
+                <el-tag :type="getOrderStatusTagType(scope.row.orderStatus)" size="small">
+                  {{ getOrderStatusText(scope.row.orderStatus) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="createTime" label="下单时间" min-width="160" />
+            <el-table-column label="操作" width="160">
+              <template #default="scope">
+                <el-button
+                  v-if="scope.row.orderStatus === 1"
+                  type="success"
+                  size="small"
+                  @click="handleAcceptOrder(scope.row.orderId)"
+                >
+                  备餐完成
+                </el-button>
+                <el-button
+                  v-if="scope.row.orderStatus === 1"
+                  type="danger"
+                  size="small"
+                  @click="handleRejectOrder(scope.row.orderId)"
+                >
+                  拒绝
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+
         <!-- 菜品管理 -->
         <div v-else-if="activeTab === 'dishes'" class="content-card">
           <div class="card-header-row">
@@ -82,7 +119,9 @@
             <el-table-column prop="price" label="价格" width="100">
               <template #default="scope">¥{{ Number(scope.row.price).toFixed(2) }}</template>
             </el-table-column>
-            <el-table-column prop="categoryId" label="分类ID" width="100" />
+            <el-table-column label="分类" width="120">
+              <template #default="scope">{{ getCategoryName(scope.row.categoryId) }}</template>
+            </el-table-column>
             <el-table-column label="状态" width="120">
               <template #default="scope">
                 <el-tag :type="getDishStatusTagType(scope.row.dishStatus)" size="small">
@@ -137,8 +176,15 @@
         <el-form-item label="菜品价格">
           <el-input-number v-model="dishForm.price" :min="0" :precision="2" :step="1" style="width: 200px" />
         </el-form-item>
-        <el-form-item label="分类ID">
-          <el-input v-model="dishForm.categoryId" placeholder="请输入分类ID" />
+        <el-form-item label="菜品分类">
+          <el-select v-model="dishForm.categoryId" placeholder="请选择分类" style="width: 200px" filterable>
+            <el-option
+              v-for="cat in categories"
+              :key="cat.categoryId"
+              :label="cat.categoryName"
+              :value="cat.categoryId"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="食材成分">
           <el-input type="textarea" v-model="dishForm.ingredients" rows="3" placeholder="描述菜品的主要食材..." />
@@ -163,6 +209,9 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { updateShop as apiUpdateShop, addDish as apiAddDish, openShop as apiOpenShop, restShop as apiRestShop, temporaryCloseShop as apiTemporaryCloseShop, resumeShop as apiResumeShop, permanentCloseShop as apiPermanentCloseShop } from '../api/shop'
+import { getShopOrders as apiGetShopOrders, acceptOrder as apiAcceptOrder, rejectOrder as apiRejectOrder } from '../api/order'
+import { getCategoriesByShop } from '../api/category'
+import { getDishesByShop } from '../api/dish'
 import { useUserStore } from '../store/user'
 
 const router = useRouter()
@@ -172,6 +221,7 @@ const showAddDishForm = ref(false)
 
 const tabs = [
   { key: 'info', label: '店铺信息', icon: '🏪' },
+  { key: 'orders', label: '订单管理', icon: '📋' },
   { key: 'dishes', label: '菜品管理', icon: '🍲' },
   { key: 'status', label: '状态管理', icon: '⚙️' }
 ]
@@ -204,24 +254,120 @@ interface ShopDish {
   dishStatus: number
 }
 
-const dishes = ref<ShopDish[]>([])
+interface ShopOrder {
+  orderId: string
+  orderNum: string
+  orderPrice: number
+  orderStatus: number
+  createTime: string
+  finishTime?: string
+  userId: string
+}
 
-onMounted(() => {
-  shopForm.value = {
-    shopName: '张三的餐厅',
-    shopType: 0,
-    shopPhone: '13800138000',
-    deliveryFee: 2.00,
-    shopPhoto: '',
-    operating: 1,
-    position: 12
+const dishes = ref<ShopDish[]>([])
+const orders = ref<ShopOrder[]>([])
+const categories = ref<ShopCategory[]>([])
+
+const getCategoryName = (categoryId: string) => {
+  const cat = categories.value.find(c => c.categoryId === categoryId)
+  return cat?.categoryName || categoryId
+}
+
+interface ShopCategory {
+  categoryId: string
+  categoryName: string
+  shopId: string
+  categoryStatus: number
+}
+
+onMounted(async () => {
+  // 加载店铺信息
+  if (!userStore.userInfo) {
+    await userStore.fetchCurrentInfo()
+  }
+  if (userStore.userInfo) {
+    const info = userStore.userInfo
+    shopForm.value = {
+      shopName: info.shopName || '',
+      shopType: info.shopType || 0,
+      shopPhone: info.shopPhone || '',
+      deliveryFee: info.deliveryFee || 0,
+      shopPhoto: info.shopPhoto || '',
+      operating: info.operating || 0,
+      position: info.position || 0
+    }
   }
 
-  dishes.value = [
-    { dishId: '1', dishName: '宫保鸡丁', price: 15.00, categoryId: '1', ingredients: '鸡肉、花生、辣椒', dishStatus: 1 },
-    { dishId: '2', dishName: '鱼香肉丝', price: 12.00, categoryId: '1', ingredients: '猪肉、木耳、胡萝卜', dishStatus: 1 }
-  ]
+  // 加载订单列表
+  await loadOrders()
+
+  // 加载分类和菜品
+  await loadCategories()
+  await loadDishes()
 })
+
+const loadOrders = async () => {
+  try {
+    const res = await apiGetShopOrders()
+    if (res.data?.code === 200 && res.data?.data) {
+      orders.value = res.data.data
+    }
+  } catch {
+    // 加载订单失败时静默处理
+  }
+}
+
+const loadCategories = async () => {
+  try {
+    const res = await getCategoriesByShop(userStore.userInfo?.shopId || '')
+    categories.value = res.data?.data || []
+  } catch {
+    categories.value = []
+  }
+}
+
+const loadDishes = async () => {
+  try {
+    const res = await getDishesByShop(userStore.userInfo?.shopId || '')
+    dishes.value = res.data?.data || []
+  } catch {
+    dishes.value = []
+  }
+}
+
+const handleAcceptOrder = async (orderId: string) => {
+  try {
+    await ElMessageBox.confirm('确认备餐完成？订单状态将变为"待取餐"。', '确认操作', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'info'
+    })
+    await apiAcceptOrder(orderId)
+    ElMessage.success('已接单，订单状态已更新为待取餐')
+    await loadOrders()
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('操作失败:', error)
+    }
+  }
+}
+
+const handleRejectOrder = async (orderId: string) => {
+  try {
+    await ElMessageBox.confirm('确定要拒绝此订单吗？订单将进入退款流程。', '确认拒绝', {
+      confirmButtonText: '确定拒绝',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    await apiRejectOrder(orderId)
+    ElMessage.success('订单已拒绝')
+    await loadOrders()
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('操作失败:', error)
+    }
+  }
+}
 
 const updateShopInfo = async () => {
   try {
@@ -245,6 +391,7 @@ const addDish = async () => {
       dishPhoto: '',
       dishPhotoId: ''
     }
+    await loadDishes()
   } catch (error) {
     console.error('添加菜品失败:', error)
   }
@@ -300,6 +447,30 @@ const permanentCloseShop = async () => {
       console.error('操作失败:', error)
     }
   }
+}
+
+const getOrderStatusText = (status: number) => {
+  const map: Record<number, string> = {
+    0: '待付款',
+    1: '已支付',
+    3: '配送中',
+    4: '待取餐',
+    5: '已取餐',
+    6: '已评价',
+    7: '已取消',
+    8: '退款中',
+    9: '已退款'
+  }
+  return map[status] || '未知'
+}
+
+const getOrderStatusTagType = (status: number) => {
+  if (status === 0) return 'warning'
+  if (status === 1) return 'info'
+  if (status === 3 || status === 4) return ''
+  if (status === 5 || status === 6) return 'success'
+  if (status === 7 || status === 8 || status === 9) return 'danger'
+  return 'info'
 }
 
 const getDishStatusText = (status: number) => {
@@ -503,7 +674,7 @@ const handleLogout = () => {
   max-width: 560px;
 }
 
-.dish-table {
+.dish-table, .order-table {
   border-radius: 8px;
   overflow: hidden;
 }

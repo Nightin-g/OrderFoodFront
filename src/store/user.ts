@@ -57,8 +57,11 @@ export const useUserStore = defineStore('user', {
           this.userInfo = response.data.data
           this.isLoggedIn = true
         }
-      } catch {
-        // 获取信息失败时静默处理，不影响已有登录态
+      } catch (err: any) {
+        // 如果是认证失败（401），清理本地登录态
+        if (err?.response?.status === 401) {
+          this.logout()
+        }
       }
     },
     logout() {

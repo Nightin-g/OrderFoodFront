@@ -9,7 +9,7 @@
           </router-link>
         </div>
         <div class="navbar-menu">
-          <router-link to="/dishes" class="nav-item">菜品浏览</router-link>
+          <router-link to="/" class="nav-item">首页</router-link>
 
           <!-- 未登录 -->
           <template v-if="!userStore.isLoggedIn">
@@ -17,32 +17,29 @@
             <router-link to="/register" class="nav-item">注册</router-link>
           </template>
 
-          <!-- 已登录：所有角色共有 -->
-          <template v-if="userStore.isLoggedIn">
+          <!-- 普通用户（已登录） -->
+          <template v-if="userStore.isUser">
+            <router-link to="/dishes" class="nav-item">菜品浏览</router-link>
+            <router-link to="/cart" class="nav-item cart-nav-item">
+              购物车
+              <span v-if="cartStore.totalCount > 0" class="cart-badge">{{ cartStore.totalCount }}</span>
+            </router-link>
+            <router-link to="/order" class="nav-item">我的订单</router-link>
+            <router-link to="/comment" class="nav-item">我的评论</router-link>
             <router-link to="/profile" class="nav-item">个人中心</router-link>
           </template>
 
-          <!-- 普通用户 -->
-          <template v-if="userStore.isUser">
-            <router-link to="/order" class="nav-item">我的订单</router-link>
-            <router-link to="/comment" class="nav-item">我的评论</router-link>
-          </template>
-
-          <!-- 店铺用户 -->
+          <!-- 店铺用户（已登录） -->
           <template v-if="userStore.isShop">
             <router-link to="/shop" class="nav-item">店铺管理</router-link>
             <router-link to="/comment" class="nav-item">我的评论</router-link>
           </template>
 
-          <!-- 管理员 -->
+          <!-- 管理员（已登录） -->
           <template v-if="userStore.isAdmin">
+            <router-link to="/dishes" class="nav-item">菜品浏览</router-link>
             <router-link to="/admin" class="nav-item">管理员后台</router-link>
           </template>
-
-          <router-link to="/cart" class="nav-item cart-nav-item">
-            购物车
-            <span v-if="cartStore.totalCount > 0" class="cart-badge">{{ cartStore.totalCount }}</span>
-          </router-link>
 
           <button v-if="userStore.isLoggedIn" @click="handleLogout" class="logout-btn">退出登录</button>
         </div>
@@ -55,8 +52,8 @@
         <h1 class="hero-title">欢迎来到大学食堂订餐系统</h1>
         <p class="hero-subtitle">便捷订餐，美味送达</p>
         <div class="hero-buttons">
-          <router-link to="/dishes" class="btn btn-primary hero-btn">
-            <span>立即订餐</span>
+          <router-link to="/login" class="btn btn-primary hero-btn">
+            <span>立即登录</span>
             <span class="btn-icon">→</span>
           </router-link>
           <router-link to="/register" class="btn btn-outline hero-btn">注册账号</router-link>

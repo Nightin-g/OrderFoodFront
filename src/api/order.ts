@@ -59,11 +59,6 @@ export const rejectOrder = (orderId: string) => {
   return api.put(`/order/shop/reject/${orderId}`)
 }
 
-// 店铺标记为出餐
-export const preparingOrder = (orderId: string) => {
-  return api.put(`/order/shop/preparing/${orderId}`)
-}
-
 // 店铺标记为配送中
 export const deliveringOrder = (orderId: string) => {
   return api.put(`/order/shop/delivering/${orderId}`)

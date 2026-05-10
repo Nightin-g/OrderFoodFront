@@ -56,7 +56,6 @@ api.interceptors.response.use(
           ElMessage.error(data?.msg || '请求参数错误')
           break
         case 401: {
-          ElMessage.error(data?.msg || '未授权，请先登录')
           const userStore = useUserStore()
           userStore.logout()
           window.location.href = '/login'

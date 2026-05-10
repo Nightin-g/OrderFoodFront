@@ -55,6 +55,7 @@ export interface Order {
   orderId: string
   orderNum: string
   userId: string
+  shopId: string
   orderPrice: number
   orderStatus: number
   createTime: string
@@ -120,11 +121,10 @@ export enum DishStatus {
   REVIEW_FAILED = 5
 }
 
-// 订单状态枚举
+// 订单状态枚举（商家自配送模式：已支付→待取餐→已取餐→已评价）
 export enum OrderStatus {
   PENDING_PAYMENT = 0,
   PAID = 1,
-  PREPARING = 2,
   DELIVERING = 3,
   READY_FOR_PICKUP = 4,
   PICKED_UP_UNEVALUATED = 5,

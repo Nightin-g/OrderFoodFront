@@ -96,7 +96,7 @@
             <div class="review-card" v-for="dish in pendingDishes" :key="dish.dishId">
               <div class="review-info">
                 <h3 class="review-name">{{ dish.dishName }}</h3>
-                <p class="review-meta">店铺ID：{{ dish.shopId }}</p>
+                <p class="review-meta">店铺：{{ getShopName(dish.shopId) }}</p>
               </div>
               <div class="review-actions">
                 <el-button type="success" @click="approveDish(dish.dishId)" :loading="actionLoading === dish.dishId">通过</el-button>
@@ -115,6 +115,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getPendingShops, getPendingDishes, approveShop as apiApproveShop, rejectShop as apiRejectShop, approveDish as apiApproveDish, rejectDish as apiRejectDish } from '../api/admin'
+import { getShopList } from '../api/shop'
 import { useUserStore } from '../store/user'
 
 interface PendingShop {
@@ -137,6 +138,12 @@ const actionLoading = ref<string | null>(null)
 
 const pendingShops = ref<PendingShop[]>([])
 const pendingDishes = ref<PendingDish[]>([])
+const allShops = ref<{ shopId: string; shopName: string }[]>([])
+
+const getShopName = (shopId: string) => {
+  const shop = allShops.value.find(s => s.shopId === shopId)
+  return shop?.shopName || shopId
+}
 
 const loading = reactive({
   shops: false,
@@ -146,7 +153,17 @@ const loading = reactive({
 onMounted(() => {
   loadPendingShops()
   loadPendingDishes()
+  loadAllShops()
 })
+
+const loadAllShops = async () => {
+  try {
+    const res = await getShopList()
+    allShops.value = (res.data.data || []).map((s: any) => ({ shopId: s.shopId, shopName: s.shopName }))
+  } catch {
+    allShops.value = []
+  }
+}
 
 const loadPendingShops = async () => {
   loading.shops = true

@@ -1,5 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
+// 无需登录即可访问的路由
+const PUBLIC_PATHS = ['/', '/login', '/register']
+
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -21,17 +24,20 @@ const router = createRouter({
     {
       path: '/dishes',
       name: 'dishes',
-      component: () => import('../views/Dishes.vue')
+      component: () => import('../views/Dishes.vue'),
+      meta: { requiresAuth: true }
     },
     {
       path: '/shop/:shopId',
       name: 'shopDetail',
-      component: () => import('../views/ShopDetail.vue')
+      component: () => import('../views/ShopDetail.vue'),
+      meta: { requiresAuth: true }
     },
     {
       path: '/cart',
       name: 'cart',
-      component: () => import('../views/Cart.vue')
+      component: () => import('../views/Cart.vue'),
+      meta: { requiresAuth: true }
     },
     {
       path: '/checkout',
@@ -80,20 +86,26 @@ const router = createRouter({
 
 // 路由守卫
 router.beforeEach((to, _from, next) => {
-  const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
+  // 公开页面直接放行
+  if (PUBLIC_PATHS.includes(to.path)) {
+    next()
+    return
+  }
+
   const token = localStorage.getItem('token')
   const loggedIn = localStorage.getItem('loggedIn') === '1'
 
-  if (requiresAuth && !token && !loggedIn) {
+  // 未登录 → 跳转到登录页
+  if (!token && !loggedIn) {
     next('/login')
     return
   }
 
   // 角色校验
-  if (requiresAuth && to.meta.roles) {
-    const allowedRoles = to.meta.roles as string[]
+  const allowedRoles = to.meta.roles as string[] | undefined
+  if (allowedRoles && allowedRoles.length > 0) {
     const userRole = localStorage.getItem('role') || ''
-    if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
+    if (!allowedRoles.includes(userRole)) {
       next('/')
       return
     }

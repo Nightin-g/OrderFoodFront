@@ -141,7 +141,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../store/user'
 import { useCartStore } from '../store/cart'
-import { getShopList } from '../api/shop'
+import { getShopList, searchShops } from '../api/shop'
 import type { ShopInfo } from '../types'
 
 const userStore = useUserStore()
@@ -177,10 +177,6 @@ const filteredShops = computed(() => {
   if (filterForm.value.floor) {
     result = result.filter(s => (s.position % 10) === filterForm.value.floor)
   }
-  if (filterForm.value.keyword) {
-    const kw = filterForm.value.keyword.toLowerCase()
-    result = result.filter(s => s.shopName.toLowerCase().includes(kw))
-  }
   return result
 })
 
@@ -196,12 +192,27 @@ const loadShops = async () => {
   }
 }
 
-const applyFilter = () => {
-  // 过滤由 computed 自动处理
+const applyFilter = async () => {
+  loading.value = true
+  try {
+    const kw = filterForm.value.keyword?.trim()
+    if (kw) {
+      const response = await searchShops(kw)
+      shops.value = response.data.data || []
+    } else {
+      const response = await getShopList()
+      shops.value = response.data.data || []
+    }
+  } catch {
+    shops.value = []
+  } finally {
+    loading.value = false
+  }
 }
 
 const resetFilter = () => {
   filterForm.value = { canteen: null, floor: null, keyword: '' }
+  loadShops()
 }
 
 const goToShop = (shopId: string) => {

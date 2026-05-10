@@ -55,6 +55,11 @@ export const getShopList = () => {
   return api.get('/shop/list')
 }
 
+// 关键词搜索店铺（按名称模糊匹配）
+export const searchShops = (keyword: string) => {
+  return api.get('/shop/search', { params: { keyword } })
+}
+
 // 获取单个店铺详情（公开）
 export const getShopDetail = (shopId: string) => {
   return api.get(`/shop/detail/${shopId}`)
