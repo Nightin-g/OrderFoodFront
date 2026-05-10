@@ -14,6 +14,10 @@
           <router-link to="/profile" class="nav-item">个人中心</router-link>
           <router-link to="/order" class="nav-item">我的订单</router-link>
           <router-link to="/comment" class="nav-item">我的评论</router-link>
+          <router-link to="/cart" class="nav-item cart-nav-item">
+            购物车
+            <span v-if="cartStore.totalCount > 0" class="cart-badge">{{ cartStore.totalCount }}</span>
+          </router-link>
           <button @click="handleLogout" class="logout-btn">退出登录</button>
         </div>
       </div>
@@ -171,11 +175,13 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { getOrderDetail as apiGetOrderDetail, payOrder as apiPayOrder, cancelOrder as apiCancelOrder, pickupOrder as apiPickupOrder, evaluateOrder as apiEvaluateOrder, refundOrder as apiRefundOrder } from '../api/order'
 import { createComment } from '../api/comment'
 import { useUserStore } from '../store/user'
+import { useCartStore } from '../store/cart'
 import type { OrderDetail } from '../types'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const cartStore = useCartStore()
 const orderDetail = ref<OrderDetail | null>(null)
 const loading = ref(true)
 const actionLoading = ref(false)
@@ -396,6 +402,15 @@ const handleLogout = () => {
 .nav-item:hover {
   background-color: #f5f7fa;
   color: #409eff;
+}
+
+.cart-nav-item { display: flex; align-items: center; gap: 4px; }
+
+.cart-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 20px; padding: 0 6px;
+  background-color: #f56c6c; color: #fff;
+  border-radius: 10px; font-size: 12px; font-weight: 600;
 }
 
 .logout-btn {

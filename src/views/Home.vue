@@ -39,6 +39,11 @@
             <router-link to="/admin" class="nav-item">管理员后台</router-link>
           </template>
 
+          <router-link to="/cart" class="nav-item cart-nav-item">
+            购物车
+            <span v-if="cartStore.totalCount > 0" class="cart-badge">{{ cartStore.totalCount }}</span>
+          </router-link>
+
           <button v-if="userStore.isLoggedIn" @click="handleLogout" class="logout-btn">退出登录</button>
         </div>
       </div>
@@ -147,8 +152,10 @@
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../store/user'
+import { useCartStore } from '../store/cart'
 
 const userStore = useUserStore()
+const cartStore = useCartStore()
 const router = useRouter()
 
 onMounted(() => {
@@ -205,6 +212,15 @@ const handleLogout = () => {
 }
 
 .nav-item:hover { background-color: #f5f7fa; color: #409eff; }
+
+.cart-nav-item { display: flex; align-items: center; gap: 4px; }
+
+.cart-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 20px; padding: 0 6px;
+  background-color: #f56c6c; color: #fff;
+  border-radius: 10px; font-size: 12px; font-weight: 600;
+}
 
 .logout-btn {
   padding: 8px 16px; background-color: #f56c6c; color: #fff;

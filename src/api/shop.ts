@@ -49,3 +49,13 @@ export const resumeShop = () => {
 export const permanentCloseShop = () => {
   return api.put('/shop/status/permanent-close')
 }
+
+// 获取所有已审核通过的店铺列表（公开）
+export const getShopList = () => {
+  return api.get('/shop/list')
+}
+
+// 获取单个店铺详情（公开）
+export const getShopDetail = (shopId: string) => {
+  return api.get(`/shop/detail/${shopId}`)
+}

@@ -14,6 +14,10 @@
           <router-link to="/profile" class="nav-item">个人中心</router-link>
           <router-link to="/order" class="nav-item active">我的订单</router-link>
           <router-link to="/comment" class="nav-item">我的评论</router-link>
+          <router-link to="/cart" class="nav-item cart-nav-item">
+            购物车
+            <span v-if="cartStore.totalCount > 0" class="cart-badge">{{ cartStore.totalCount }}</span>
+          </router-link>
           <button @click="handleLogout" class="logout-btn">退出登录</button>
         </div>
       </div>
@@ -71,12 +75,14 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getUserOrders } from '../api/order'
 import { useUserStore } from '../store/user'
+import { useCartStore } from '../store/cart'
 import type { Order } from '../types'
 
 const orders = ref<Order[]>([])
 const loading = ref(true)
 const router = useRouter()
 const userStore = useUserStore()
+const cartStore = useCartStore()
 
 onMounted(async () => {
   try {
@@ -194,6 +200,15 @@ const handleLogout = () => {
 .nav-item.active {
   background-color: #e8f4fd;
   color: #409eff;
+}
+
+.cart-nav-item { display: flex; align-items: center; gap: 4px; }
+
+.cart-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 20px; padding: 0 6px;
+  background-color: #f56c6c; color: #fff;
+  border-radius: 10px; font-size: 12px; font-weight: 600;
 }
 
 .logout-btn {

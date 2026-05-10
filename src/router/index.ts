@@ -24,6 +24,22 @@ const router = createRouter({
       component: () => import('../views/Dishes.vue')
     },
     {
+      path: '/shop/:shopId',
+      name: 'shopDetail',
+      component: () => import('../views/ShopDetail.vue')
+    },
+    {
+      path: '/cart',
+      name: 'cart',
+      component: () => import('../views/Cart.vue')
+    },
+    {
+      path: '/checkout',
+      name: 'checkout',
+      component: () => import('../views/Checkout.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/profile',
       name: 'profile',
       component: () => import('../views/Profile.vue'),
